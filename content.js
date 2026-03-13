@@ -98,7 +98,7 @@ async function callSv2(apiKey, params) {
 
 async function cancelSim(sim, apiKey) {
   try {
-    if (sim.source === "okvip") await callOkvip(`/cancel?api_key=${apiKey}&sim_id=${sim.simId}`);
+    if (sim.source === "okvip") await callOkvip("/cancel?api_key="+apiKey+"&sim_id="+sim.simId);
     else await callSv2(apiKey, { act:"expired", id:sim.otpId });
   } catch(e) {}
 }
@@ -106,7 +106,7 @@ async function cancelSim(sim, apiKey) {
 async function rentNewSim(apiKey, type) {
   showToast("⏳ Đang thuê SIM mới...", "info");
   if (type === "okvip") {
-    const d = await callOkvip(`/get-sim?api_key=${apiKey}&service_id=${FIXED_SVC}`);
+    const d = await callOkvip("/get-sim?api_key="+apiKey+"&service_id="+FIXED_SVC);
     if ((d && d.status) !== 200) { showToast("❌ " + ((d && d.message) || "Không thuê được SIM"), "error"); return null; }
     return { phone:d.data.phone, simObj:{ source:"okvip", otpId:d.data.otpId, simId:d.data.simId, phone:d.data.phone, code:null, done:false } };
   } else {
@@ -141,7 +141,7 @@ async function pollOtp(sim, apiKey, btn) {
       try {
         let code = null, audioUrl = null;
         if (sim.source === "okvip") {
-          const d = await callOkvip(`/get-otp?api_key=${apiKey}&otp_id=${sim.otpId}`);
+          const d = await callOkvip("/get-otp?api_key="+apiKey+"&otp_id="+sim.otpId);
           const content = (d && d.data && d.data.content) || "";
           const audio   = (d && d.data && d.data.audio)   || "";
           const m = content.match(/\b\d{4,8}\b/);
@@ -162,8 +162,8 @@ async function pollOtp(sim, apiKey, btn) {
 
         if (code) {
           clearInterval(timer);
-          setBtn(`✅ OTP: ${code}`, "#28a745");
-          showToast(`✅ Mã OTP: ${code}`, "success");
+          setBtn("OTP: "+code, "#28a745");
+          showToast("OTP: "+code, "success");
           fillInput(findOtpInput(), code);
           sim.code = code; sim.done = true;
           await setStorage({ [CURRENT_SIM_KEY]: JSON.stringify(sim) });
@@ -216,7 +216,7 @@ async function handleFillPhoneClick() {
     [CURRENT_SIM_KEY]: JSON.stringify(res.simObj)
   });
 
-  showToast(`✅ Đã thuê: ${res.phone}`, "success");
+  showToast("Da thue: "+res.phone, "success");
   setTimeout(() => fillInput(findPhoneInput(), stripZero(res.phone)), 300);
 }
 
@@ -227,7 +227,7 @@ async function handleVerPhoneClick() {
   try { sim = JSON.parse(raw || "null"); } catch(e) {}
   if (!(sim && sim.phone)) { showToast("❌ Chưa có SIM! Nhấn 'Điền SĐT' ở trang trước.","error"); return; }
   const ok = fillInput(findPhoneInput(), stripZero(sim.phone));
-  showToast(ok ? `✅ Đã điền lại: ${sim.phone}` : "❌ Không tìm thấy ô SĐT", ok ? "success" : "error");
+  showToast(ok ? "Da dien: "+sim.phone : "❌ Không tìm thấy ô SĐT", ok ? "success" : "error");
 }
 
 async function handleOtpClick() {
@@ -253,12 +253,7 @@ function injectBtn(inputEl, id, label, color, handler) {
   if (getComputedStyle(parent).position === "static") parent.style.position = "relative";
   const btn = document.createElement("button");
   btn.id = id; btn.type = "button"; btn.textContent = label;
-  btn.style.cssText = `
-    position:absolute; right:8px; top:50%; transform:translateY(-50%);
-    z-index:9999; padding:4px 10px; background:${color}; color:#fff;
-    border:none; border-radius:6px; font-size:12px; font-weight:bold;
-    cursor:pointer; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.2); line-height:1.4;
-  `;
+  btn.style.cssText = "position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:9999;padding:4px 10px;background:"+color+";color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.2);line-height:1.4;";
   btn.addEventListener("click", async (e) => {
     e.preventDefault(); e.stopPropagation();
     if (btn.disabled) return;
@@ -281,13 +276,7 @@ function showToast(msg, type) {
   const colors = { success:"#28a745", error:"#dc3545", info:"#007bff" };
   const t = document.createElement("div");
   t.id = "okvip-toast"; t.textContent = msg;
-  t.style.cssText = `
-    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
-    z-index:99999; padding:10px 20px; border-radius:8px;
-    font-size:13px; font-weight:bold; font-family:Arial,sans-serif;
-    color:#fff; background:${colors[type]||"#333"};
-    box-shadow:0 4px 12px rgba(0,0,0,0.2); transition:opacity 0.3s;
-  `;
+  t.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:bold;font-family:Arial,sans-serif;color:#fff;background:"+(colors[type]||"#333")+";box-shadow:0 4px 12px rgba(0,0,0,0.2);transition:opacity 0.3s;";
   document.body.appendChild(t);
   setTimeout(() => { t.style.opacity="0"; setTimeout(()=>t.remove(),300); }, 2800);
 }
