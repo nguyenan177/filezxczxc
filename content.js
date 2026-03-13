@@ -69,8 +69,8 @@ function fillInput(el, val) {
   return true;
 }
 
-const getStorage = (keys) => new Promise(r => chrome.storage.local.get(keys, r));
-const setStorage = (obj)  => new Promise(r => chrome.storage.local.set(obj, r));
+const getStorage=(keys)=>Promise.resolve(Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)])));
+const setStorage=(obj)=>{Object.entries(obj).forEach(([k,v])=>localStorage.setItem(k,v));return Promise.resolve();};
 
 function detectType(key) {
   if (!key) return null;
