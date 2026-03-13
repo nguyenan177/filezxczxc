@@ -14,15 +14,22 @@ const APP_ID          = 1200;
 // =====================================================
 
 function findPhoneInput() {
-  const KW = /s[đd][tT]|phone|mobile|hotline|di.?d.?ng|s[oố].?[đd]i.?[đd]/i;
-  const inputs = [...document.querySelectorAll('input[type="tel"], input[type="text"], input[type="number"]')];
+  // Direct match for data-input-name="phone" (SC88, OKVIP sites)
+  const direct = document.querySelector('input[data-input-name="phone"]');
+  if (direct) return direct;
+  // Fallback: type=tel
+  const tel = document.querySelector('input[type="tel"]');
+  if (tel) return tel;
+  // Fallback: keyword match on name/id/placeholder
+  const KW = /phone|mobile|sdt|sdт/i;
+  const inputs = [...document.querySelectorAll('input[type="text"], input[type="number"]')];
   return inputs.find(el =>
     KW.test(el.placeholder || "") ||
     KW.test(el.name        || "") ||
     KW.test(el.id          || "") ||
     KW.test(el.getAttribute("data-input-name") || "") ||
     KW.test(el.getAttribute("aria-label")      || "")
-  ) || inputs.find(el => el.type === "tel") || null;
+  ) || null;
 }
 
 function findOtpInput() {
