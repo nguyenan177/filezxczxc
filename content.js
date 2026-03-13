@@ -68,7 +68,7 @@ function isRegisterPage() {
 function fillInput(el, val) {
   if (!el) return false;
   try {
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    const setter = (Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value')||{}).set;
     if (setter) setter.call(el, val); else el.value = val;
   } catch(e) { el.value = val; }
   ["input","change"].forEach(ev => el.dispatchEvent(new Event(ev, { bubbles:true })));
@@ -107,11 +107,11 @@ async function rentNewSim(apiKey, type) {
   showToast("⏳ Đang thuê SIM mới...", "info");
   if (type === "okvip") {
     const d = await callOkvip(`/get-sim?api_key=${apiKey}&service_id=${FIXED_SVC}`);
-    if (d?.status !== 200) { showToast("❌ " + (d?.message || "Không thuê được SIM"), "error"); return null; }
+    if ((d && d.status) !== 200) { showToast("❌ " + ((d && d.message) || "Không thuê được SIM"), "error"); return null; }
     return { phone:d.data.phone, simObj:{ source:"okvip", otpId:d.data.otpId, simId:d.data.simId, phone:d.data.phone, code:null, done:false } };
   } else {
     const d = await callSv2(apiKey, { act:"number", appId:APP_ID });
-    if (d?.ResponseCode !== 0) { showToast("❌ " + (d?.ResponseCode===3 ? "Kho số tạm hết!" : d?.Msg||"Lỗi"), "error"); return null; }
+    if ((d && d.ResponseCode) !== 0) { showToast("❌ " + ((d && d.ResponseCode)===3 ? "Kho số tạm hết!" : (d && d.Msg)||"Lỗi"), "error"); return null; }
     const phone = "0" + d.Result.Number;
     return { phone, simObj:{ source:"sv2", otpId:d.Result.Id, simId:d.Result.Id, phone, code:null, done:false } };
   }
@@ -142,17 +142,17 @@ async function pollOtp(sim, apiKey, btn) {
         let code = null, audioUrl = null;
         if (sim.source === "okvip") {
           const d = await callOkvip(`/get-otp?api_key=${apiKey}&otp_id=${sim.otpId}`);
-          const content = d?.data?.content || "";
-          const audio   = d?.data?.audio   || "";
+          const content = (d && d.data && d.data.content) || "";
+          const audio   = (d && d.data && d.data.audio)   || "";
           const m = content.match(/\b\d{4,8}\b/);
           if (m)     code     = m[0];
           if (audio) audioUrl = audio;
         } else {
           const d = await callSv2(apiKey, { act:"code", id:sim.otpId });
-          if (d?.ResponseCode === 0 && d?.Result) {
+          if ((d && d.ResponseCode) === 0 && (d && d.Result)) {
             if (d.Result.Code)                        code     = d.Result.Code;
             if (d.Result.IsCall && d.Result.CallFile) audioUrl = d.Result.CallFile;
-          } else if (d?.ResponseCode === 2) {
+          } else if ((d && d.ResponseCode) === 2) {
             clearInterval(timer);
             setBtn("⏰ Hết giờ", "#dc3545");
             showToast("⏰ Hết giờ OTP","error");
@@ -225,7 +225,7 @@ async function handleVerPhoneClick() {
   const { [CURRENT_SIM_KEY]:raw } = await getStorage([CURRENT_SIM_KEY]);
   let sim = null;
   try { sim = JSON.parse(raw || "null"); } catch(e) {}
-  if (!sim?.phone) { showToast("❌ Chưa có SIM! Nhấn 'Điền SĐT' ở trang trước.","error"); return; }
+  if (!(sim && sim.phone)) { showToast("❌ Chưa có SIM! Nhấn 'Điền SĐT' ở trang trước.","error"); return; }
   const ok = fillInput(findPhoneInput(), stripZero(sim.phone));
   showToast(ok ? `✅ Đã điền lại: ${sim.phone}` : "❌ Không tìm thấy ô SĐT", ok ? "success" : "error");
 }
@@ -277,7 +277,7 @@ function injectBtn(inputEl, id, label, color, handler) {
 //  TOAST
 // =====================================================
 function showToast(msg, type) {
-  document.getElementById("okvip-toast")?.remove();
+  var _t=document.getElementById("okvip-toast");if(_t)_t.remove();
   const colors = { success:"#28a745", error:"#dc3545", info:"#007bff" };
   const t = document.createElement("div");
   t.id = "okvip-toast"; t.textContent = msg;
